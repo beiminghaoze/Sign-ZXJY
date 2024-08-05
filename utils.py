@@ -23,14 +23,16 @@ class MessagePush:
                 if pushdata['PushPlus']['Token'] != "":
                     feedback = pushinfo.PushPlus(token=pushdata['PushPlus']['Token'], title=title, content=content)
                 else:
-                    feedback = pushinfo.PushPlus(token=config['push-data']['PushPlus']['Token'], title=title, content=content)
+                    feedback = pushinfo.PushPlus(token=config['push-data']['PushPlus']['Token'], title=title,
+                                                 content=content)
                 return feedback
             elif pushmode == "3":
                 if pushdata['Server_Turbo']['Token'] != "":
                     feedback = pushinfo.ServerTurbo(token=pushdata['Server_Turbo']['Token'], title=title,
                                                     content=content)
                 else:
-                    feedback = pushinfo.ServerTurbo(token=config['push-data']['Server_Turbo']['Token'], title=title, content=content)
+                    feedback = pushinfo.ServerTurbo(token=config['push-data']['Server_Turbo']['Token'], title=title,
+                                                    content=content)
                 return feedback
             elif pushmode == "4":
                 if pushdata['Email']['Password'] != "":
@@ -58,21 +60,24 @@ class MessagePush:
                                                           content=content)
                     else:
                         feedback = pushinfo.DingTalkRebot(DingSecret=config['push-data']['DingDing']['Secret'],
-                                                          DingToken=config['push-data']['DingDing']['Token'], title=title,
+                                                          DingToken=config['push-data']['DingDing']['Token'],
+                                                          title=title,
                                                           content=content)
                     return feedback
                 elif pushmode == "2":
                     if pushdata['PushPlus']['Token'] != "":
                         feedback = pushinfo.PushPlus(token=pushdata['PushPlus']['Token'], title=title, content=content)
                     else:
-                        feedback = pushinfo.PushPlus(token=config['push-data']['PushPlus']['Token'], title=title, content=content)
+                        feedback = pushinfo.PushPlus(token=config['push-data']['PushPlus']['Token'], title=title,
+                                                     content=content)
                     return feedback
                 elif pushmode == "3":
                     if pushdata['Server_Turbo']['Token'] != "":
                         feedback = pushinfo.ServerTurbo(token=pushdata['Server_Turbo']['Token'], title=title,
                                                         content=content)
                     else:
-                        feedback = pushinfo.ServerTurbo(token=config['push-data']['Server_Turbo']['Token'], title=title, content=content)
+                        feedback = pushinfo.ServerTurbo(token=config['push-data']['Server_Turbo']['Token'], title=title,
+                                                        content=content)
                     return feedback
                 elif pushmode == "4":
                     if pushdata['Email']['Password'] != "":
@@ -94,5 +99,6 @@ class MessagePush:
                     feedback = title + "\n" + content
                     return feedback
             else:
-                feedback = f"未在推送时效！"
-                return feedback
+                print()
+        #feedback = f"未在推送时效！"
+        # return feedback

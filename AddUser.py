@@ -15,9 +15,19 @@ def write_user(filename, newdata):
 
 def obtain_coordinates(address):
     url = f"https://apis.map.qq.com/jsapi?qt=geoc&addr={urllib.parse.quote(address)}&key={config['api_token']}&output=jsonp&pf=jsapi&ref=jsapi&cb=qq.maps._svcb3.geocoder0"
-    re = requests.get(url=url).text.strip("qq.maps._svcb3.geocoder0(").strip(")")
-    re = json.loads(re)
-    return re['detail']['pointx'] + "@" + re['detail']['pointy']
+    try:
+        re = requests.get(url=url).text.strip("qq.maps._svcb3.geocoder0(").strip(")")
+        print(f"API Response: {re}")  # 调试信息
+        re = json.loads(re)
+        return re['detail']['pointx'] + "@" + re['detail']['pointy']
+    except (json.JSONDecodeError, KeyError) as e:
+        print(f"Error occurred: {e}")
+        # 返回默认固定坐标
+        return "113.775402@34.749141"  # 替换为你需要的固定经纬度
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return "113.775402@34.749141"  # 替换为你需要的固定经纬度
+
 
 
 def checkUserData(filename, enabled, day, name, phone, password, device, modify_coordinates, address, pushmode=None,

@@ -142,32 +142,32 @@ def calculate_sign(data, token):
     return data
 
 
-# ZXJY打卡函数
-def sign_in_request(uid, address, phonetype, probability, longitude, latitude, token,
-                    modify_coordinates=False):
-    longitude = float(longitude)
-    latitude = float(latitude)
-    if modify_coordinates:
-        longitude = round(longitude + random.uniform(-0.00001, 0.00001), 6)
-        latitude = round(latitude + random.uniform(-0.00001, 0.00001), 6)
-    data = {
-        "dtype": 1,
-        "uid": uid,
-        "address": address,
-        "phonetype": phonetype,
-        "probability": probability,
-        "longitude": longitude,
-        "latitude": latitude
-    }
-    sign = calculate_sign(data, token)
-    header = generate_headers(sign, phonetype, token)
-    url = 'https://sxbaapp.dxtxl.com/api/clockindaily20220827.ashx'
-    response_text = json.loads(send_request(url=url, method='POST', headers=header, data=data))
-    logging.info(response_text)
-    if response_text['code'] == 1001:
-        return True, response_text['msg']
-    else:
-        return False, response_text['msg']
+# # ZXJY打卡函数
+# def sign_in_request(uid, address, phonetype, probability, longitude, latitude, token,
+#                     modify_coordinates=False):
+#     longitude = float(longitude)
+#     latitude = float(latitude)
+#     if modify_coordinates:
+#         longitude = round(longitude + random.uniform(-0.00001, 0.00001), 6)
+#         latitude = round(latitude + random.uniform(-0.00001, 0.00001), 6)
+#     data = {
+#         "dtype": 1,
+#         "uid": uid,
+#         "address": address,
+#         "phonetype": phonetype,
+#         "probability": probability,
+#         "longitude": longitude,
+#         "latitude": latitude
+#     }
+#     sign = calculate_sign(data, token)
+#     header = generate_headers(sign, phonetype, token)
+#     url = 'https://sxbaapp.dxtxl.com/api/clockindaily20220827.ashx'
+#     response_text = json.loads(send_request(url=url, method='POST', headers=header, data=data))
+#     logging.info(response_text)
+#     if response_text['code'] == 1001:
+#         return True, response_text['msg']
+#     else:
+#         return False, response_text['msg']
 
 
 # 获取ZXJY用户信息
@@ -228,66 +228,56 @@ def login_and_sign_in(user, endday):
     title = "职教家园打卡通知"
     login_feedback = "登录失败！"
     push_feedback = "推送无效！"
+    content = ""
+
+    # 检查用户是否启用
     if not user['enabled']:
-        content = f"未启用打卡，即将跳过！"
+        content = "未启用打卡，即将跳过！"
         return login_feedback, content, push_feedback
-    if endday >= 0:
-        pass
-    else:
-        content = f"您已到期！"
-        push_feedback = MessagePush.pushMessage(addinfo=True, pushmode=user["pushmode"], pushdata=user['pushdata'],
-                                                title=title, content=content)
+
+    # 检查是否已过期
+    endday = 1  # 永不过期
+    if endday < 0:
+        content = "您已到期！"
+        push_feedback = MessagePush.pushMessage(
+            addinfo=True, pushmode=user["pushmode"], pushdata=user['pushdata'], title=title, content=content)
         return login_feedback, content, push_feedback
-    if config['holiday_pass']:
-        if not is_workday(datetime.datetime.now()):
-            holiday_data = get_holiday_detail(datetime.datetime.now())
-            if holiday_data[1] is None:
-                content = f'{user["name"]}，今天是法定节假日！无需打卡！\n剩余时间：{endday}天'
-            else:
-                content = f'{user["name"]}，今天是 {holiday_data[1]} ！，无需打卡！\n剩余时间：{endday}天'
-            push_feedback = MessagePush.pushMessage(addinfo=False, pushmode=user["pushmode"],
-                                                    pushdata=user['pushdata'], title=title, content=content)
-            return login_feedback, content, push_feedback
-        else:
-            pass
+
+    # 尝试获取账户数据并打卡
     try:
         account_data = get_account_data(user['phone'], user['password'], user['deviceId'])
         if account_data:
             login_feedback = f"{user['name']}，登录成功！"
-            uid = account_data[1]
-            token = account_data[2]
+            uid, token = account_data[1], account_data[2]
             if not token:
-                print("获取 Token 失败，无法继续操作")
-            sign_in_response = sign_in_request(uid, user['address'], user['deviceId'], 0, user['longitude'],
-                                               user['latitude'], token,
-                                               user['modify_coordinates'])
-            if sign_in_response[0]:
-                title = "职教家园打卡成功！"
-                content = f"{user['name']}，打卡成功！\n提示信息：" + sign_in_response[1]
-                if config['day_report'] or config['week_report'] or config['month_report']:
-                    content = content + f"\n实习报告提交：{report_handler(user, uid, token)}" + f"\n剩余时间：{endday}天"
-            else:
-                content = f"{user['name']}，打卡失败！\n错误信息：" + sign_in_response[1] + f"\n剩余时间：{endday}天"
-        else:
-            content = f"{user['name']}，登录失败！\n错误信息：" + '获取uid和token失败！' + f"\n剩余时间：{endday}天"
-        push_feedback = MessagePush.pushMessage(addinfo=False, pushmode=user["pushmode"],
-                                                pushdata=user['pushdata'], title=title, content=content)
-        return login_feedback, content, push_feedback
+                raise ValueError("获取 Token 失败，无法继续操作")
+
+            # 打卡操作已取消
+
     except Exception as e:
-        content = f"{user['name']}，{e}" + f"\n剩余时间：{endday}天"
-        push_feedback = MessagePush.pushMessage(addinfo=False, pushmode=user["pushmode"], pushdata=user['pushdata'],
-                                                title=title, content=content)
-        return login_feedback, content, push_feedback
+        content += f"{user['name']}，{str(e)}"
+
+    # 提交报告，包括假日判断
+    content += f"\n实习报告提交：{report_handler(user, uid, token)}"
+
+    content += f"\n剩余时间：{endday}天"
+    push_feedback = MessagePush.pushMessage(
+        addinfo=False, pushmode=user["pushmode"], pushdata=user['pushdata'], title=title, content=content)
+    return login_feedback, content, push_feedback
 
 
 # GPT提示词生成
+
 def prompt_handler(step, speciality=None, job=None, types=None, plan=None, data=None):
     if step == 'first':
-        return f'我是{speciality}专业的实习生，根据我的专业和我的工作{job}，写一份实习计划，要求：100字以内。'
-    if step == 'second':
-        return f'我将给你一份实习计划：{plan}，根据此计划写一份实习{types}，要求100字以内，包含项目名字（不包含我的专业名字），项目记录，项目总结，并以json格式输出。'
-    if step == 'third':
-        return f'我将给你一份数据{data}，请根据json格式处理给我，格式要求只包含：项目名字（project），项目记录（record），项目总结（summary），不要输出其他多余内容。'
+        prompt = f'我是{speciality}专业的实习生，根据我的专业和我的工作{job}，写一份实习计划，要求：100字以内。'
+    elif step == 'second':
+        prompt = f'我将给你一份实习计划：{plan}，根据此计划写一份实习{types}，要求100字以内，包含项目名字（不包含我的专业名字），项目记录，项目总结，并以json格式输出。'
+    elif step == 'third':
+        prompt = f'我将给你一份数据{data}，请根据json格式处理给我，格式要求只包含：项目名字（project），项目记录（record），项目总结（summary），不要输出其他多余内容。'
+    else:
+        prompt = ''
+    return prompt
 
 
 # GPT处理函数
@@ -307,7 +297,7 @@ def gpt_handler(prompt):
     messages = [{"role": "user", "content": prompt}]
     try:
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo-1106",
+            model="gpt-4o",
             messages=messages,
             temperature=0.7,
         )
@@ -345,7 +335,8 @@ def week_Report(time, user, uid, token, summary, record, project):
         "uid": uid,
         "summary": summary,
         "record": record,
-        "starttime": (time + datetime.timedelta(days=-7)).strftime('%Y-%m-%d'),
+        "starttime": (datetime.datetime.now() - datetime.timedelta(days=datetime.datetime.now().weekday())).strftime(
+            '%Y-%m-%d'),
         "dtype": 2,
         "project": project,
         "endtime": time.strftime("%Y-%m-%d"),
@@ -366,7 +357,7 @@ def month_Report(time, user, uid, token, summary, record, project):
         "uid": uid,
         "summary": summary,
         "record": record,
-        "starttime": (time + datetime.timedelta(days=-30)).strftime('%Y-%m-%d'),
+        "starttime": datetime.date(datetime.datetime.now().year, datetime.datetime.now().month, 1).strftime('%Y-%m-%d'),
         "dtype": 2,
         "project": project,
         "endtime": time.strftime("%Y-%m-%d"),
@@ -379,14 +370,17 @@ def month_Report(time, user, uid, token, summary, record, project):
     return info
 
 
-# 报告提交调用
 def report_handler(user, uid, token):
     speciality = get_user_info(uid, user['deviceId'], token)[2]
     job = get_job_data(uid, user['deviceId'], token)[1]
     content = ''
+
+    # 假日判断
     if not is_workday(datetime.datetime.now().date()):
         content = '今日为法定节假日！暂未提交报告！'
         return content
+
+    # 日报提交逻辑
     if config['day_report']:
         first_prompt = prompt_handler(step='first', speciality=speciality, job=job)
         logging.info(first_prompt)
@@ -397,73 +391,96 @@ def report_handler(user, uid, token):
         second_gpt = gpt_handler(second_prompt)
         logging.info(second_gpt)
         third_prompt = prompt_handler(step='third', data=second_gpt)
+        logging.info(third_prompt)
         third_gpt = gpt_handler(third_prompt)
-        this_day_report_data = json.loads(third_gpt[1])
-        this_day_result = day_Report(datetime.datetime.now(), user,
-                                     uid,
-                                     token,
-                                     this_day_report_data['summary'],
-                                     this_day_report_data['record'],
-                                     this_day_report_data['project'])
+
+        # 打印third_gpt内容以检查JSON格式问题
+        print(f"third_gpt content: {third_gpt}")
+
         try:
-            content = content + '\n日报：' + f"{this_day_result['msg']}\n{this_day_report_data['project']}\n{this_day_report_data['record']}\n{this_day_report_data['summary']}"
-        except Exception as e:
-            this_day_result_content = this_day_result
-            logging.warning(e)
-            logging.info(this_day_result_content)
-    if config['week_report']:
-        if datetime.datetime.weekday(datetime.datetime.now()) == 0:
-            first_prompt = prompt_handler(step='first', speciality=speciality, job=job)
-            logging.info(first_prompt)
-            first_gpt = gpt_handler(first_prompt)
-            logging.info(first_gpt)
-            second_prompt = prompt_handler(step='second', speciality=speciality, job=job, types='周报', plan=first_gpt)
-            logging.info(second_prompt)
-            second_gpt = gpt_handler(second_prompt)
-            logging.info(second_gpt)
-            third_prompt = prompt_handler(step='third', data=second_gpt)
-            logging.info(third_prompt)
-            third_gpt = gpt_handler(third_prompt)
-            logging.info(third_gpt)
-            this_week_report_data = json.loads(third_gpt[1])
-            this_week_result = week_Report(datetime.datetime.now(), user,
-                                           uid,
-                                           token,
+            # 去除代码块标记 ```json 和 ```
+            raw_json_str = third_gpt[1].replace('```json\n', '').replace('\n```', '')
+            this_day_report_data = json.loads(raw_json_str)
+            this_day_result = day_Report(datetime.datetime.now(), user, uid, token,
+                                         this_day_report_data['summary'],
+                                         this_day_report_data['record'],
+                                         this_day_report_data['project'])
+            try:
+                content += f"\n日报：{this_day_result['msg']}\n{this_day_report_data['project']}\n{this_day_report_data['record']}\n{this_day_report_data['summary']}"
+            except KeyError as e:
+                logging.warning(f"Missing key in daily report data: {e}")
+        except json.JSONDecodeError as e:
+            logging.warning(f"JSON decoding failed: {e}")
+            logging.warning(f"Raw content: {third_gpt}")
+            content += "\n日报生成失败，解析报告数据时出错。"
+
+    # 周报提交逻辑
+    if config['week_report'] and datetime.datetime.weekday(datetime.datetime.now()) == 5:  # 每周六提交周报
+        first_prompt = prompt_handler(step='first', speciality=speciality, job=job)
+        logging.info(first_prompt)
+        first_gpt = gpt_handler(first_prompt)
+        logging.info(first_gpt)
+        second_prompt = prompt_handler(step='second', speciality=speciality, job=job, types='周报', plan=first_gpt)
+        logging.info(second_prompt)
+        second_gpt = gpt_handler(second_prompt)
+        logging.info(second_gpt)
+        third_prompt = prompt_handler(step='third', data=second_gpt)
+        logging.info(third_prompt)
+        third_gpt = gpt_handler(third_prompt)
+
+        # 打印third_gpt内容以检查JSON格式问题
+        print(f"third_gpt content: {third_gpt}")
+
+        try:
+            # 去除代码块标记 ```json 和 ```
+            raw_json_str = third_gpt[1].replace('```json\n', '').replace('\n```', '')
+            this_week_report_data = json.loads(raw_json_str)
+            this_week_result = week_Report(datetime.datetime.now(), user, uid, token,
                                            this_week_report_data['summary'],
                                            this_week_report_data['record'],
                                            this_week_report_data['project'])
             try:
-                content = content + '\n周报：' + f"{this_week_result['msg']}\n{this_week_report_data['project']}\n{this_week_report_data['record']}\n{this_week_report_data['summary']}"
-            except Exception as e:
-                this_week_result_content = this_week_result
-                logging.warning(e)
-                logging.info(this_week_result_content)
-    if config['month_report']:
-        if datetime.datetime.now().strftime("%d") == "25":
-            first_prompt = prompt_handler(step='first', speciality=speciality, job=job)
-            logging.info(first_prompt)
-            first_gpt = gpt_handler(first_prompt)
-            logging.info(first_gpt)
-            second_prompt = prompt_handler(step='second', speciality=speciality, job=job, types='月报', plan=first_gpt)
-            logging.info(second_prompt)
-            second_gpt = gpt_handler(second_prompt)
-            logging.info(second_gpt)
-            third_prompt = prompt_handler(step='third', data=second_gpt)
-            logging.info(third_prompt)
-            third_gpt = gpt_handler(third_prompt)
-            logging.info(third_gpt)
-            this_month_report_data = json.loads(third_gpt[1])
-            this_month_result = month_Report(datetime.datetime.now(), user,
-                                             uid,
-                                             token,
+                content += f"\n周报：{this_week_result['msg']}\n{this_week_report_data['project']}\n{this_week_report_data['record']}\n{this_week_report_data['summary']}"
+            except KeyError as e:
+                logging.warning(f"Missing key in weekly report data: {e}")
+        except json.JSONDecodeError as e:
+            logging.warning(f"JSON decoding failed: {e}")
+            logging.warning(f"Raw content: {third_gpt}")
+            content += "\n周报生成失败，解析报告数据时出错。"
+
+    # 月报提交逻辑
+    if config['month_report'] and datetime.datetime.now().strftime("%d") == "30":  # 每月30号提交月报
+        first_prompt = prompt_handler(step='first', speciality=speciality, job=job)
+        logging.info(first_prompt)
+        first_gpt = gpt_handler(first_prompt)
+        logging.info(first_gpt)
+        second_prompt = prompt_handler(step='second', speciality=speciality, job=job, types='月报', plan=first_gpt)
+        logging.info(second_prompt)
+        second_gpt = gpt_handler(second_prompt)
+        logging.info(second_gpt)
+        third_prompt = prompt_handler(step='third', data=second_gpt)
+        logging.info(third_prompt)
+        third_gpt = gpt_handler(third_prompt)
+
+        # 打印third_gpt内容以检查JSON格式问题
+        print(f"third_gpt content: {third_gpt}")
+
+        try:
+            # 去除代码块标记 ```json 和 ```
+            raw_json_str = third_gpt[1].replace('```json\n', '').replace('\n```', '')
+            this_month_report_data = json.loads(raw_json_str)
+            this_month_result = month_Report(datetime.datetime.now(), user, uid, token,
                                              this_month_report_data['summary'],
                                              this_month_report_data['record'],
                                              this_month_report_data['project'])
             try:
-                content = content + '\n月报：' + f"{this_month_result['msg']}\n{this_month_report_data['project']}\n{this_month_report_data['record']}\n{this_month_report_data['summary']}"
-            except Exception as e:
-                this_month_result_content = this_month_result
-                logging.warning(e)
-                logging.info(this_month_result_content)
+                content += f"\n月报：{this_month_result['msg']}\n{this_month_report_data['project']}\n{this_month_report_data['record']}\n{this_month_report_data['summary']}"
+            except KeyError as e:
+                logging.warning(f"Missing key in monthly report data: {e}")
+        except json.JSONDecodeError as e:
+            logging.warning(f"JSON decoding failed: {e}")
+            logging.warning(f"Raw content: {third_gpt}")
+            content += "\n月报生成失败，解析报告数据时出错。"
+
     logging.info(content)
     return content

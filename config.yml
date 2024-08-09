@@ -37,7 +37,7 @@ gpt_data:
 day_report: True
 # 是否开启周报，每周六提交
 week_report: True
-# 是否开启月报，每月30号提交
+# 是否开启月报，每月月底最后一天提交
 month_report: False
 #日报手动生成
 manual_report: True

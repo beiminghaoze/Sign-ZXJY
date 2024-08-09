@@ -7,11 +7,12 @@ import os
 import random
 import re
 import time
+
 import requests
 import yaml
-
-from chinese_calendar import get_holiday_detail, is_workday
+from chinese_calendar import is_workday
 from openai import OpenAI
+
 from utils import MessagePush
 
 # 读取配置文件config.yml并转化为json格式
@@ -42,6 +43,23 @@ def random_Time(time):
     data = random.randint(int(time[0]), int(time[1]))
     logging.info(data)
     return data
+
+
+# 获取当前月份的最后一天
+def last_day_of_month():
+    now = datetime.datetime.now()
+    year = now.year
+    month = now.month
+
+    if month in [1, 3, 5, 7, 8, 10, 12]:
+        return "31"
+    elif month in [4, 6, 9, 11]:
+        return "30"
+    else:
+        if (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0):
+            return "29"
+        else:
+            return "28"
 
 
 # 从all-users.json内遍历用户数据
@@ -140,34 +158,6 @@ def calculate_sign(data, token):
     data = calculate_hmac_sha256('Anything_2023', combined_text)
     logging.info(data)
     return data
-
-
-# # ZXJY打卡函数
-# def sign_in_request(uid, address, phonetype, probability, longitude, latitude, token,
-#                     modify_coordinates=False):
-#     longitude = float(longitude)
-#     latitude = float(latitude)
-#     if modify_coordinates:
-#         longitude = round(longitude + random.uniform(-0.00001, 0.00001), 6)
-#         latitude = round(latitude + random.uniform(-0.00001, 0.00001), 6)
-#     data = {
-#         "dtype": 1,
-#         "uid": uid,
-#         "address": address,
-#         "phonetype": phonetype,
-#         "probability": probability,
-#         "longitude": longitude,
-#         "latitude": latitude
-#     }
-#     sign = calculate_sign(data, token)
-#     header = generate_headers(sign, phonetype, token)
-#     url = 'https://sxbaapp.dxtxl.com/api/clockindaily20220827.ashx'
-#     response_text = json.loads(send_request(url=url, method='POST', headers=header, data=data))
-#     logging.info(response_text)
-#     if response_text['code'] == 1001:
-#         return True, response_text['msg']
-#     else:
-#         return False, response_text['msg']
 
 
 # 获取ZXJY用户信息
@@ -270,9 +260,9 @@ def login_and_sign_in(user, endday):
 
 def prompt_handler(step, speciality=None, job=None, types=None, plan=None, data=None):
     if step == 'first':
-        prompt = f'我是{speciality}专业的实习生，根据我的专业和我的工作{job}，写一份实习计划，要求：100字以内。'
+        prompt = f'我是{speciality}专业的实习生，根据我的专业和我的工作{job}，写一份实习计划，要求：100字左右。'
     elif step == 'second':
-        prompt = f'我将给你一份实习计划：{plan}，根据此计划写一份实习{types}，要求100字以内，包含项目名字（不包含我的专业名字），项目记录，项目总结，并以json格式输出。'
+        prompt = f'我将给你一份实习计划：{plan}，根据此计划写一份实习{types}，要求100字左右，包含项目名字（不包含我的专业名字），项目记录，项目总结，并以json格式输出。'
     elif step == 'third':
         prompt = f'我将给你一份数据{data}，请根据json格式处理给我，格式要求只包含：项目名字（project），项目记录（record），项目总结（summary），不要输出其他多余内容。'
     else:
@@ -381,7 +371,7 @@ def report_handler(user, uid, token):
         return content
 
     # 日报提交逻辑
-    if config['day_report']:
+    if config['day_report'] and (0 <= (datetime.datetime.weekday(datetime.datetime.now())) <= 4):  # 每周一到周五提交日报
         first_prompt = prompt_handler(step='first', speciality=speciality, job=job)
         logging.info(first_prompt)
         first_gpt = gpt_handler(first_prompt)
@@ -395,7 +385,7 @@ def report_handler(user, uid, token):
         third_gpt = gpt_handler(third_prompt)
 
         # 打印third_gpt内容以检查JSON格式问题
-        print(f"third_gpt content: {third_gpt}")
+        # print(f"third_gpt content: {third_gpt}")
 
         try:
             # 去除代码块标记 ```json 和 ```
@@ -429,7 +419,7 @@ def report_handler(user, uid, token):
         third_gpt = gpt_handler(third_prompt)
 
         # 打印third_gpt内容以检查JSON格式问题
-        print(f"third_gpt content: {third_gpt}")
+        # print(f"third_gpt content: {third_gpt}")
 
         try:
             # 去除代码块标记 ```json 和 ```
@@ -449,7 +439,7 @@ def report_handler(user, uid, token):
             content += "\n周报生成失败，解析报告数据时出错。"
 
     # 月报提交逻辑
-    if config['month_report'] and datetime.datetime.now().strftime("%d") == "30":  # 每月30号提交月报
+    if config['month_report'] and datetime.datetime.now().strftime("%d") == last_day_of_month():  # 每月月底最后一天提交月报
         first_prompt = prompt_handler(step='first', speciality=speciality, job=job)
         logging.info(first_prompt)
         first_gpt = gpt_handler(first_prompt)
@@ -463,7 +453,7 @@ def report_handler(user, uid, token):
         third_gpt = gpt_handler(third_prompt)
 
         # 打印third_gpt内容以检查JSON格式问题
-        print(f"third_gpt content: {third_gpt}")
+        # print(f"third_gpt content: {third_gpt}")
 
         try:
             # 去除代码块标记 ```json 和 ```

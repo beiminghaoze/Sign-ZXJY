@@ -360,14 +360,15 @@ def month_Report(time, user, uid, token, summary, record, project):
     return info
 
 
+# 报告提交调用
 def report_handler(user, uid, token):
     speciality = get_user_info(uid, user['deviceId'], token)[2]
     job = get_job_data(uid, user['deviceId'], token)[1]
     content = ''
 
     # 假日判断
-    if not is_workday(datetime.datetime.now().date()):
-        content = '今日为法定节假日！暂未提交报告！'
+    if not (is_workday(datetime.datetime.now().date()) or (datetime.datetime.weekday(datetime.datetime.now())) <= 5):
+        content = '今日为法定节假日和星期天！暂未提交报告！'
         return content
 
     # 日报提交逻辑
@@ -425,14 +426,28 @@ def report_handler(user, uid, token):
             # 去除代码块标记 ```json 和 ```
             raw_json_str = third_gpt[1].replace('```json\n', '').replace('\n```', '')
             this_week_report_data = json.loads(raw_json_str)
+
+            # 获取周报提交结果
             this_week_result = week_Report(datetime.datetime.now(), user, uid, token,
                                            this_week_report_data['summary'],
                                            this_week_report_data['record'],
                                            this_week_report_data['project'])
+
+            # 确保返回值为字典类型
+            if isinstance(this_week_result, str):
+                try:
+                    this_week_result = json.loads(this_week_result)  # 尝试将字符串解析为字典
+                except json.JSONDecodeError:
+                    logging.warning("周报提交返回的不是有效的 JSON 数据")
+                    this_week_result = {"msg": "周报提交失败，返回的不是有效的 JSON 数据"}
+
+            # 添加周报内容
             try:
                 content += f"\n周报：{this_week_result['msg']}\n{this_week_report_data['project']}\n{this_week_report_data['record']}\n{this_week_report_data['summary']}"
             except KeyError as e:
                 logging.warning(f"Missing key in weekly report data: {e}")
+                content += f"\n周报提交失败：缺少关键数据 {e}"
+
         except json.JSONDecodeError as e:
             logging.warning(f"JSON decoding failed: {e}")
             logging.warning(f"Raw content: {third_gpt}")
@@ -459,14 +474,28 @@ def report_handler(user, uid, token):
             # 去除代码块标记 ```json 和 ```
             raw_json_str = third_gpt[1].replace('```json\n', '').replace('\n```', '')
             this_month_report_data = json.loads(raw_json_str)
+
+            # 获取月报提交结果
             this_month_result = month_Report(datetime.datetime.now(), user, uid, token,
                                              this_month_report_data['summary'],
                                              this_month_report_data['record'],
                                              this_month_report_data['project'])
+
+            # 确保返回值为字典类型
+            if isinstance(this_month_result, str):
+                try:
+                    this_month_result = json.loads(this_month_result)  # 尝试将字符串解析为字典
+                except json.JSONDecodeError:
+                    logging.warning("月报提交返回的不是有效的 JSON 数据")
+                    this_month_result = {"msg": "月报提交失败，返回的不是有效的 JSON 数据"}
+
+            # 添加月报内容
             try:
                 content += f"\n月报：{this_month_result['msg']}\n{this_month_report_data['project']}\n{this_month_report_data['record']}\n{this_month_report_data['summary']}"
             except KeyError as e:
                 logging.warning(f"Missing key in monthly report data: {e}")
+                content += f"\n月报提交失败：缺少关键数据 {e}"
+
         except json.JSONDecodeError as e:
             logging.warning(f"JSON decoding failed: {e}")
             logging.warning(f"Raw content: {third_gpt}")

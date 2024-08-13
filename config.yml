@@ -39,8 +39,7 @@ day_report: True
 week_report: True
 # 是否开启月报，每月月底最后一天提交
 month_report: False
-#日报手动生成
-manual_report: True
+
 
 # 是否开启节假日判断（如果当天为中国法定节假日，则跳过打卡）
 holiday_pass: False

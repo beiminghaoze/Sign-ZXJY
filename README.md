@@ -24,16 +24,16 @@
 
 ## 使用教程
 
-更新
+1.**更新**
 ```pip install -i https://mirrors.aliyun.com/pypi/simple --upgrade pip```
 
-安装所需依赖
+2.**安装所需依赖**
 ```pip install -i https://mirrors.aliyun.com/pypi/simple -r requirements.txt ```
 
-添加用户运行
+3.**添加用户**
 `python AddUser.py`
 
-打卡主程序运行
+4.**打卡主程序运行**
 `python Main.py`
 
 

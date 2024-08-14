@@ -33,7 +33,7 @@
 3.**添加用户**
 `python AddUser.py`
 
-4.**打卡主程序运行**
+4.**主程序运行**
 `python Main.py`
 
 

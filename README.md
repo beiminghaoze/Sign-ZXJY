@@ -10,7 +10,7 @@
 2. **取消打卡功能**：本项目移除了打卡调用，仅保留了提交汇报的功能。
 3. **配置文件更新**：`config.yml` 中的 `gpturl` 已更新为 `https://api.xeduapi.com/v1` 如需获取key，请访问 [注册页面](https://xeduapi.com/register?aff=2fbE)。
 4. **月报功能**：目前月报功能尚未测试，因此在 `config.yml` 中 `month_report` 设置为 `False`。
-5. **日期优化**：每周周一到周五提交日报，周六提交本周的周报，每月底最后一天提交月报。
+5. **日期优化**：每周周一到周五提交日报、周六提交本周的周报，每月月底最后一天提交月报。
 
 
 ## 项目说明
@@ -23,4 +23,18 @@
 6. **二次开发声明**：若基于或参考此项目进行二次开发，请注明原作者并遵循 GPL3.0 许可证。
 
 ## 使用教程
-使用教程请参考原项目 [zycn0910/Sign-ZXJY](https://github.com/zycn0910/Sign-ZXJY)。
+
+更新
+```pip install -i https://mirrors.aliyun.com/pypi/simple --upgrade pip```
+
+安装所需依赖
+```pip install -i https://mirrors.aliyun.com/pypi/simple -r requirements.txt ```
+
+添加用户运行
+`python AddUser.py`
+
+打卡主程序运行
+`python Main.py`
+
+
+更多使用教程请参考原项目 [zycn0910/Sign-ZXJY](https://github.com/zycn0910/Sign-ZXJY)

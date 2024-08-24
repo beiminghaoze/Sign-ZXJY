@@ -6,7 +6,7 @@
 ## 修改内容
 针对原项目，我们进行了以下修改：
 
-1. **手动填写坐标**：在运行 `AddUser.py` 前，请在文件的第26行和第29行修改坐标。注意使用 `@` 符号。如果运行后出现错误，属于正常现象。只需检查 `all-users.json` 是否有内容，并且结构与原项目的 `user.json` 说明一致即可。
+1. **需手动填写坐标**：在运行 `AddUser.py` 前，请在文件的第26行和第29行修改坐标。注意使用 `@` 符号。如果运行后出现错误，属于正常现象。只需检查 `all-users.json` 是否有内容，并且结构与原项目的 `user.json` 说明 一致即可。
 2. **取消打卡功能**：本项目移除了打卡调用，仅保留了提交汇报的功能。
 3. **配置文件更新**：`config.yml` 中的 `gpturl` 已更新为 `https://api.xeduapi.com/v1` 如需获取key，请访问 [注册页面](https://xeduapi.com/register?aff=2fbE)。
 4. **月报功能**：目前月报功能尚未测试，因此在 `config.yml` 中 `month_report` 设置为 `False`。
@@ -25,10 +25,10 @@
 ## 使用教程
 
 1.**更新**
-```pip install -i https://mirrors.aliyun.com/pypi/simple --upgrade pip```
+```pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade pip```
 
 2.**安装所需依赖**
-```pip install -i https://mirrors.aliyun.com/pypi/simple -r requirements.txt ```
+```pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt ```
 
 3.**添加用户**
 `python AddUser.py`

@@ -159,34 +159,6 @@ def calculate_sign(data, token):
     return data
 
 
-# ZXJY打卡函数
-def sign_in_request(uid, address, phonetype, probability, longitude, latitude, token,
-                    modify_coordinates=False):
-    longitude = float(longitude)
-    latitude = float(latitude)
-    if modify_coordinates:
-        longitude = round(longitude + random.uniform(-0.00001, 0.00001), 6)
-        latitude = round(latitude + random.uniform(-0.00001, 0.00001), 6)
-    data = {
-        "dtype": 1,
-        "uid": uid,
-        "address": address,
-        "phonetype": phonetype,
-        "probability": probability,
-        "longitude": longitude,
-        "latitude": latitude
-    }
-    sign = calculate_sign(data, token)
-    header = generate_headers(sign, phonetype, token)
-    url = 'https://sxbaapp.dxtxl.com/api/clockindaily20220827.ashx'
-    response_text = json.loads(send_request(url=url, method='POST', headers=header, data=data))
-    logging.info(response_text)
-    if response_text['code'] == 1001:
-        return True, response_text['msg']
-    else:
-        return False, response_text['msg']
-
-
 # 获取ZXJY用户信息
 def get_user_info(uid, deviceId, token):
     url = "https://sxbaapp.dxtxl.com/api/relog.ashx"

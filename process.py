@@ -260,7 +260,6 @@ def login_and_sign_in(user, endday):
             content = f"{user['name']}，登录失败！\n错误信息：" + '获取uid和token失败！'
             return login_feedback, content, push_feedback
 
-        # 无论登录成功与否，都提交实习汇报
         report_content = report_handler(user, uid, token) if account_data else "未能获取uid，无法提交实习汇报。"
         if config['day_report'] or config['week_report'] or config['month_report']:
             content = f"{user['name']}，实习报告提交：{report_content}"
@@ -377,6 +376,17 @@ def report_handler(user, uid, token):
     job = get_job_data(uid, user['deviceId'], token)[1]
     content = ''
 
+    # 处理节假日
+    if not is_workday(datetime.datetime.now().date()):
+        holiday_data = get_holiday_detail(datetime.datetime.now())
+        if holiday_data[1] is None:
+            content += f'{user["name"]}，今天是法定节假日！无需提交报告！'
+        else:
+            content += f'{user["name"]}，今天是 {holiday_data[1]}！无需提交报告！'
+        return content  # 如果是节假日，直接返回，无需执行后续的日报、周报或月报
+
+    # 如果不是节假日，继续处理报告提交
+
     # 日报
     if config['day_report'] and (0 <= (datetime.datetime.weekday(datetime.datetime.now())) <= 4):  # 每周一到周五提交日报
         first_prompt = prompt_handler(step='first', speciality=speciality, job=job)
@@ -402,7 +412,7 @@ def report_handler(user, uid, token):
             logging.warning(e)
 
     # 周报
-    if config['week_report'] and datetime.datetime.weekday(datetime.datetime.now()) == 5:
+    if config['week_report'] and datetime.datetime.weekday(datetime.datetime.now()) == 5:  # 每周六提交周报
         first_prompt = prompt_handler(step='first', speciality=speciality, job=job)
         logging.info(first_prompt)
         first_gpt = gpt_handler(first_prompt)
@@ -448,15 +458,6 @@ def report_handler(user, uid, token):
             content += '\n月报：' + f"{this_month_result['msg']}\n{this_month_report_data['project']}\n{this_month_report_data['record']}\n{this_month_report_data['summary']}"
         except Exception as e:
             logging.warning(e)
-
-    # 节假日
-    if not is_workday(datetime.datetime.now().date()):
-        holiday_data = get_holiday_detail(datetime.datetime.now())
-        if holiday_data[1] is None:
-            content += f'今天是法定节假日！无需提交报告！'
-        else:
-            content += f'今天是 {holiday_data[1]}！，无需提交报告！'
-        return content
 
     logging.info(content)
     return content
